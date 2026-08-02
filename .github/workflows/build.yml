@@ -1,0 +1,46 @@
+name: build and check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install TeX Live and poppler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended \
+            texlive-fonts-extra texlive-science latexmk poppler-utils
+
+      - name: Build
+        run: latexmk -pdf -interaction=nonstopmode main.tex
+
+      - name: Check the built PDF against the TRB rules
+        run: python3 check_trb_compliance.py main.pdf
+
+      - name: Confirm the checker still catches a missing trb2027.sty
+        run: |
+          # Regression test: without the compliance layer, page numbers go
+          # top-right and the checker must FAIL. If this step succeeds, the
+          # check has silently stopped working.
+          mkdir -p /tmp/neg && cp -r . /tmp/neg/t && cd /tmp/neg/t
+          sed -i 's|^\\usepackage{trb2027}.*|\\usepackage{siunitx}|' main.tex
+          sed -i 's|\\trbabstractsection|\\textbf|g' main.tex
+          sed -i 's|\\trbdataavailability{|\\section*{Data Availability}{|' main.tex
+          sed -i 's|\\trbaidisclosure{|\\section*{AI Disclosure}{|' main.tex
+          latexmk -pdf -interaction=nonstopmode main.tex
+          if python3 check_trb_compliance.py main.pdf; then
+            echo "::error::checker passed a PDF with top-right page numbers"
+            exit 1
+          fi
+          echo "ok -- checker correctly failed the non-compliant build"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: main-pdf
+          path: main.pdf

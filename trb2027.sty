@@ -1,0 +1,102 @@
+% ======================================================================
+% trb2027.sty -- 2027-cycle compliance layer for trbunofficial.cls v5.0
+%
+% Sits on top of the class so the class stays easy to re-sync with upstream
+% (https://github.com/chiehrosswang/TRB_LaTeX_tex). Load after
+% \documentclass{trbunofficial}.
+%
+% Scope note, so you know what this does and does not add: upstream v5.0
+% already covers the 2027 structured abstract and the title-page machinery.
+% What it does NOT do is put page numbers where the 2027 checklist asks for
+% them, offer 10pt, or guard the siunitx traps. That is what this file is for.
+%
+% Part of https://github.com/cnpcshangbo/trb-2027-latex-template
+% MIT licensed. See LICENSE and NOTICE-upstream-MIT.txt.
+% ======================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{trb2027}[2026/08/01 TRB Annual Meeting 2027-cycle compliance layer]
+
+% Options first, before anything else loads -- this is the order LaTeX wants.
+%   [allowsmall]  keep \small and \footnotesize working. Reasonable at a 12pt
+%                 base, where \small is 11pt and still compliant. At a 10pt
+%                 base they are 9pt and 8pt, i.e. below the floor.
+\newif\ifTRB@allowsmall \TRB@allowsmallfalse
+\DeclareOption{allowsmall}{\TRB@allowsmalltrue}
+\ProcessOptions\relax
+
+% NOTE: no \makeatother anywhere in this file. Inside a .sty, @ is already a
+% letter and LaTeX restores the catcode when the package finishes loading.
+% Calling \makeatother here would switch @ off for the REST of the file, and
+% every later internal macro would break with a confusing "Missing
+% \begin{document}" further down. (Ask how we know.)
+
+% ----------------------------------------------------------------------
+% 1. Page numbers centred at the bottom of every page.
+%
+% The main reason this package exists. trbunofficial.cls v5.0 defines
+%     \newpagestyle{main}{\sethead{\@AuthorHeaders}{}{\thepage}}
+% which puts the page number top-RIGHT in the running header -- upstream's own
+% template documents this as intended behaviour. The 2027 TRB Annual Meeting
+% Paper Submission Checklist asks instead for page numbers "centered at the
+% bottom of each page", so the stock output does not pass a format check.
+% Move it to the footer, keep the author running head on the left.
+% ----------------------------------------------------------------------
+\renewpagestyle{main}{\sethead{\@AuthorHeaders}{}{}\setfoot{}{\thepage}{}}
+\pagestyle{main}
+
+% ----------------------------------------------------------------------
+% 2. Structured-abstract helper.
+%
+% 2027 requires a structured abstract of at most 300 words under five
+% headings: Objectives, Methods, Findings, Novelty, Practical Applications.
+% This just typesets one heading consistently; the class does not provide it.
+% ----------------------------------------------------------------------
+\newcommand{\trbabstractsection}[1]{%
+  \par\vspace{0.4\baselineskip}\noindent\textbf{#1:}~\ignorespaces}
+
+% ----------------------------------------------------------------------
+% 3. siunitx configuration -- two traps that silently corrupt numbers.
+%
+% (a) range-phrase. siunitx v3 defaults to the literal word " to ", so
+%     \numrange{0.34}{0.43} renders "0.34 to 0.43", not an en dash. The
+%     source looks correct; only the PDF shows it. We shipped a draft with
+%     twelve of these before a reviewer caught it.
+%
+% (b) group-separator. \num{40,793} can read the comma as a DECIMAL MARKER
+%     and render "40.793" -- off by 1000, and plausible enough to survive
+%     proofreading. With this setup, write \num{40793} and let the package
+%     insert the separator; never type the comma yourself.
+% ----------------------------------------------------------------------
+\RequirePackage{siunitx}
+\sisetup{
+  range-phrase          = \text{--},
+  range-units           = single,
+  group-separator       = {,},
+  group-minimum-digits  = 4,
+  mode                  = match,
+  propagate-math-font   = true
+}
+
+% ----------------------------------------------------------------------
+% 4. Guard against sub-10pt text.
+%
+% TRB requires 10-point font or larger. At a 10pt base \small is 9pt and
+% \footnotesize is 8pt -- both non-compliant, and both are exactly what people
+% reach for to squeeze a wide table onto the page.
+%
+% Applied with \let at \begin{document} rather than \renewcommand in the
+% preamble, so the class and the packages it loads finish their own font setup
+% untouched. \scriptsize and \tiny are deliberately left alone: titlesec and
+% friends use them internally, and math sub/superscripts must stay small.
+% ----------------------------------------------------------------------
+\ifTRB@allowsmall\else
+  \AtBeginDocument{\let\small\normalsize \let\footnotesize\normalsize}
+\fi
+
+% ----------------------------------------------------------------------
+% 5. End-matter sections the 2027 cycle expects.
+% ----------------------------------------------------------------------
+\newcommand{\trbaidisclosure}[1]{\section*{Disclosure of Generative AI Use}#1}
+\newcommand{\trbdataavailability}[1]{\section*{Data Availability}#1}
+
+\endinput
