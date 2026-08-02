@@ -34,12 +34,13 @@
 %   \documentclass[12pt]{trbunofficial}   % upstream behaviour
 % ----------------------------------------------------------------------
 % The size must be known BEFORE \LoadClass, but this class defers
-% \ProcessOptions until after the packages are loaded (\DeclareOption{numbered}
-% needs lineno to exist first). So read the option list directly here rather
-% than calling \ProcessOptions early -- an early \ProcessOptions would swallow
-% `numbered` before the class ever declares it, silently killing line numbers.
-% The sizes are then declared as no-ops below so the single \ProcessOptions
-% consumes them and LaTeX does not report an unused global option.
+% \ProcessOptions until after its packages load (\DeclareOption{numbered} needs
+% lineno to exist first). Read the option list directly here rather than calling
+% \ProcessOptions early: \LoadClass resets the used-option bookkeeping, so an
+% early \ProcessOptions leaves LaTeX reporting "Unused global option(s): [10pt]"
+% at \begin{document} even though the option was honoured. The sizes are then
+% declared as no-ops below, so the class's single \ProcessOptions marks them
+% used.
 \newcommand{\TRB@ptsize}{10pt}
 \@for\TRB@opt:=\@classoptionslist\do{%
   \def\TRB@tmp{10pt}\ifx\TRB@opt\TRB@tmp\renewcommand{\TRB@ptsize}{10pt}\fi

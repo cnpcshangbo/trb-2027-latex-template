@@ -23,56 +23,8 @@ jobs:
       - name: Check the built PDF against the TRB rules
         run: python3 check_trb_compliance.py main.pdf
 
-      - name: Confirm the checker still catches a missing trb2027.sty
-        run: |
-          # Regression test: without the compliance layer, page numbers go
-          # top-right and the checker must FAIL. If this step succeeds, the
-          # check has silently stopped working.
-          mkdir -p /tmp/neg && cp -r . /tmp/neg/t && cd /tmp/neg/t
-          sed -i 's|^\\usepackage{trb2027}.*|\\usepackage{siunitx}|' main.tex
-          sed -i 's|\\trbabstractsection|\\textbf|g' main.tex
-          sed -i 's|\\trbdataavailability{|\\section*{Data Availability}{|' main.tex
-          sed -i 's|\\trbaidisclosure{|\\section*{AI Disclosure}{|' main.tex
-          latexmk -pdf -interaction=nonstopmode main.tex
-          if python3 check_trb_compliance.py main.pdf; then
-            echo "::error::checker passed a PDF with top-right page numbers"
-            exit 1
-          fi
-          echo "ok -- checker correctly failed the non-compliant build"
-
-      - name: Class options must actually work
-        run: |
-          # Regression test for a bug we shipped once: declaring the base-size
-          # options with an early \ProcessOptions swallowed `numbered` before
-          # the class could declare it, so line numbers silently stopped being
-          # switchable. Assert each option has a visible effect.
-          set -e
-          check () {  # $1 = options, $2 = expected pt, $3 = numerals expected (yes/no)
-            sed -i "s|^\\\\documentclass\\[.*\\]{trbunofficial}|\\\\documentclass[$1]{trbunofficial}|" main.tex
-            latexmk -C >/dev/null; latexmk -pdf -interaction=nonstopmode main.tex >/dev/null
-            if grep -q 'Unused global option' main.log; then
-              echo "::error::[$1] LaTeX reports an unused global option"; exit 1; fi
-            got=$(python3 -c "
-import re,zlib,collections
-raw=open('main.pdf','rb').read(); c=collections.Counter()
-for m in re.finditer(rb'stream\r?\n',raw):
-    s=m.end(); e=raw.find(b'endstream',s)
-    try: d=zlib.decompress(raw[s:e])
-    except Exception: continue
-    for t in re.finditer(rb'/[A-Za-z0-9+.-]+ ([0-9.]+) Tf',d): c[round(float(t.group(1)),1)]+=1
-print(c.most_common(1)[0][0])")
-            [ "$got" = "$2" ] || { echo "::error::[$1] dominant font $got, expected $2"; exit 1; }
-            n=$(pdftotext -bbox -f 2 -l 2 main.pdf - | grep -oP 'xMin="[0-6]?[0-9]\.' | wc -l)
-            if [ "$3" = yes ] && [ "$n" -lt 5 ]; then
-              echo "::error::[$1] expected line numbers, found $n"; exit 1; fi
-            if [ "$3" = no ] && [ "$n" -gt 0 ]; then
-              echo "::error::[$1] expected NO line numbers, found $n"; exit 1; fi
-            echo "ok [$1] -> ${got}pt, left-margin numerals=$n"
-          }
-          check "10pt,numbered" 10.0 yes
-          check "12pt,numbered" 12.0 yes
-          check "10pt"          10.0 no
-          git checkout main.tex
+      - name: Self-tests (class options, checker still rejects bad builds)
+        run: python3 selftest.py
 
       - uses: actions/upload-artifact@v4
         with:
