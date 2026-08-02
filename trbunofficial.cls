@@ -33,12 +33,19 @@
 %   \documentclass[10pt]{trbunofficial}   % default here
 %   \documentclass[12pt]{trbunofficial}   % upstream behaviour
 % ----------------------------------------------------------------------
+% The size must be known BEFORE \LoadClass, but this class defers
+% \ProcessOptions until after the packages are loaded (\DeclareOption{numbered}
+% needs lineno to exist first). So read the option list directly here rather
+% than calling \ProcessOptions early -- an early \ProcessOptions would swallow
+% `numbered` before the class ever declares it, silently killing line numbers.
+% The sizes are then declared as no-ops below so the single \ProcessOptions
+% consumes them and LaTeX does not report an unused global option.
 \newcommand{\TRB@ptsize}{10pt}
-\DeclareOption{10pt}{\renewcommand{\TRB@ptsize}{10pt}}
-\DeclareOption{11pt}{\renewcommand{\TRB@ptsize}{11pt}}
-\DeclareOption{12pt}{\renewcommand{\TRB@ptsize}{12pt}}
-\DeclareOption*{\PassOptionsToClass{\CurrentOption}{article}}
-\ProcessOptions\relax
+\@for\TRB@opt:=\@classoptionslist\do{%
+  \def\TRB@tmp{10pt}\ifx\TRB@opt\TRB@tmp\renewcommand{\TRB@ptsize}{10pt}\fi
+  \def\TRB@tmp{11pt}\ifx\TRB@opt\TRB@tmp\renewcommand{\TRB@ptsize}{11pt}\fi
+  \def\TRB@tmp{12pt}\ifx\TRB@opt\TRB@tmp\renewcommand{\TRB@ptsize}{12pt}\fi
+}
 \LoadClass[titlepage,oneside,\TRB@ptsize]{article}
 
 % ----------------------------------------------------------------------
@@ -71,6 +78,8 @@
 %   numbered — turn on line numbers
 % ----------------------------------------------------------------------
 \DeclareOption{numbered}{\linenumbers}
+% LOCAL CHANGE: consume the base-size options, already handled above.
+\DeclareOption{10pt}{}\DeclareOption{11pt}{}\DeclareOption{12pt}{}
 \ProcessOptions\relax
 
 % ----------------------------------------------------------------------
