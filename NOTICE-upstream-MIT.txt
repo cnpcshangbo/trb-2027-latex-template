@@ -1,3 +1,16 @@
+This project is a derivative work.
+
+trbunofficial.cls and trb.bst come from the TRB LaTeX template by
+David R. Pritchard, Gregory S. Macfarlane, and C. Ross Wang:
+
+    https://github.com/chiehrosswang/TRB_LaTeX_tex
+
+trb.bst is unmodified. trbunofficial.cls carries two changes, both marked
+"LOCAL CHANGE" in the file; upstream/trbunofficial-v5.0-upstream.cls is the
+pristine copy for diffing.
+
+Their MIT licence, reproduced in full, applies to those two files:
+
 MIT License
 
 Copyright (c) 2017 Chieh (Ross) Wang
