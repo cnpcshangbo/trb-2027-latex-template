@@ -119,6 +119,25 @@ way, and they looked fine in the source.
 
 ---
 
+## Dependencies
+
+A standard TeX Live install covers it. On a minimal Debian/Ubuntu box:
+
+```bash
+sudo apt-get install -y texlive-latex-recommended texlive-latex-extra \
+  texlive-fonts-recommended texlive-fonts-extra texlive-science \
+  texlive-plain-generic latexmk poppler-utils
+```
+
+`texlive-plain-generic` is easy to miss and the failure is opaque: the class
+loads `newtxmath` for Times-like math, which inputs `binhex.tex` from that
+package, and without it the build dies with ``File `binhex.tex' not found``.
+
+`poppler-utils` supplies `pdfinfo` and `pdftotext` for the checker.
+Optionally `pip install pymupdf` for exact font measurement.
+
+---
+
 ## Files
 
 | File | What it is |
